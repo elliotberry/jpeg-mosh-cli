@@ -2,6 +2,7 @@
 #wrangler (cf workers)
 .wrangler
 # Compiled source
+mosh*
 *.com
 *.class
 *.dll
