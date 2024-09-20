@@ -23,37 +23,26 @@
 */
 
 // Import necessary modules
-import fs from 'fs'; // For file system operations
+import fs from 'node:fs'; // For file system operations
 
 import {Jimp} from 'jimp'; // Image processing library (replacement for PIL)
 
 // Define JPEG markers
-const SOI = 0xd8;
-const APP0 = 0xe0;
-const APP1 = 0xe1;
-const APP2 = 0xe2;
-const APP3 = 0xe3;
-const APP4 = 0xe4;
-const APP5 = 0xe5;
-const APP6 = 0xe6;
-const APP7 = 0xe7;
-const APP8 = 0xe8;
-const APP9 = 0xe9;
-const APP10 = 0xea;
-const APP11 = 0xeb;
-const APP12 = 0xec;
-const APP13 = 0xed;
-const APP14 = 0xee;
-const APP15 = 0xef;
-const SOF0 = 0xc0;
-const SOF2 = 0xc2;
-const SOF1 = 0xc1;
-const SOF9 = 0xc9;
-const HQT = 0xc4;
-const DQT = 0xdb;
-const SOS = 0xda;
-const EOI = 0xd9;
-const COM = 0xfe;
+const SOI = 0xD8;
+const APP0 = 0xE0;
+const APP12 = 0xEC;
+const APP13 = 0xED;
+const APP14 = 0xEE;
+const APP15 = 0xEF;
+const SOF0 = 0xC0;
+const SOF2 = 0xC2;
+const SOF1 = 0xC1;
+const SOF9 = 0xC9;
+const HQT = 0xC4;
+const DQT = 0xDB;
+const SOS = 0xDA;
+const EOI = 0xD9;
+const COM = 0xFE;
 
 function* read_structure(jpeg_data, debug = false) {
   /*
@@ -68,23 +57,23 @@ function* read_structure(jpeg_data, debug = false) {
       - segment size
       - segment data
     */
-  let i = 0;
+  let index = 0;
   const dsize = jpeg_data.length;
 
-  while (i < jpeg_data.length) {
+  while (index < jpeg_data.length) {
     if (debug) {
-      console.log(`now at bytepos ${i} of ${dsize}`);
+      console.log(`now at bytepos ${index} of ${dsize}`);
     }
 
-    if (jpeg_data[i] !== 0xff) {
+    if (jpeg_data[index] !== 0xFF) {
       if (debug) {
-        console.log(`    segment didn't start with 0xff, we probably mis-parsed (next bytes are ${jpeg_data.slice(i, i + 8)})`);
+        console.log(`    segment didn't start with 0xff, we probably mis-parsed (next bytes are ${jpeg_data.slice(index, index + 8)})`);
         console.log('');
       }
       break;
     }
 
-    const ma = jpeg_data[i + 1]; // marker
+    const ma = jpeg_data[index + 1]; // marker
     let descr;
     let moveon;
     let segdata;
@@ -99,54 +88,54 @@ function* read_structure(jpeg_data, debug = false) {
     } else if (ma === EOI) {
       descr = 'End Of Image';
       moveon = 2;
-    } else if (ma === 0xd0) {
+    } else if (ma === 0xD0) {
       descr = 'restart 0';
       moveon = 2;
-    } else if (ma === 0xd1) {
+    } else if (ma === 0xD1) {
       descr = 'restart 1';
       moveon = 2;
-    } else if (ma === 0xd2) {
+    } else if (ma === 0xD2) {
       descr = 'restart 2';
       moveon = 2;
-    } else if (ma === 0xd3) {
+    } else if (ma === 0xD3) {
       descr = 'restart 3';
       moveon = 2;
-    } else if (ma === 0xd4) {
+    } else if (ma === 0xD4) {
       descr = 'restart 4';
       moveon = 2;
-    } else if (ma === 0xd5) {
+    } else if (ma === 0xD5) {
       descr = 'restart 5';
       moveon = 2;
-    } else if (ma === 0xd6) {
+    } else if (ma === 0xD6) {
       descr = 'restart 6';
       moveon = 2;
-    } else if (ma === 0xd7) {
+    } else if (ma === 0xD7) {
       descr = 'restart 7';
       moveon = 2;
-    } else if (ma >= 0x30 && ma <= 0x3f) {
+    } else if (ma >= 0x30 && ma <= 0x3F) {
       descr = 'reserved JP2';
       moveon = 2;
-    } else if (ma === 0xdd) {
+    } else if (ma === 0xDD) {
       descr = 'restart interval';
       moveon = 6;
     } else if (ma === SOS) {
       // Start of Scan
       descr = 'start of scan';
 
-      const datasize = (jpeg_data[i + 2] << 8) + jpeg_data[i + 3];
+      const datasize = (jpeg_data[index + 2] << 8) + jpeg_data[index + 3];
       if (debug) {
         console.log(`  SOS header size: ${datasize}`);
       }
-      const num_components = jpeg_data[i + 4];
+      const number_components = jpeg_data[index + 4];
 
       if (debug) {
-        console.log(`  Components in scan: ${num_components}`);
+        console.log(`  Components in scan: ${number_components}`);
       }
-      for (let ci = 0; ci < num_components; ci++) {
+      for (let ci = 0; ci < number_components; ci++) {
         if (debug) {
-          console.log(`  Component ${ci + 1} of ${num_components}`);
+          console.log(`  Component ${ci + 1} of ${number_components}`);
         }
-        const cid = jpeg_data[i + 4 + 2 * ci];
+        const cid = jpeg_data[index + 4 + 2 * ci];
         if (debug) {
           process.stdout.write('   Channel');
           if (cid === 1) {
@@ -163,30 +152,30 @@ function* read_structure(jpeg_data, debug = false) {
             console.log(cid);
           }
         }
-        const htab = jpeg_data[i + 4 + 2 * ci + 1];
-        const htab_ac = (htab & 0xf0) >> 4;
-        const htab_dc = htab & 0x0f;
+        const htab = jpeg_data[index + 4 + 2 * ci + 1];
+        const htab_ac = (htab & 0xF0) >> 4;
+        const htab_dc = htab & 0x0F;
         if (debug) {
           console.log(`  Huffman table  AC:<span class="math-inline">\{htab\_ac\.toString\(16\)\}  DC\:</span>{htab_dc.toString(16)}`);
         }
       }
 
       // HACK: just look assume this section ends with an EOI
-      if (jpeg_data.slice(-2).equals(Buffer.from([0xff, 0xd9]))) {
-        segdata = jpeg_data.slice(i, -2);
-        moveon = jpeg_data.length - i - 2;
+      if (jpeg_data.slice(-2).equals(Buffer.from([0xFF, 0xD9]))) {
+        segdata = jpeg_data.slice(index, -2);
+        moveon = jpeg_data.length - index - 2;
       } else {
         // or sometimes no EOI. Joy.
-        segdata = jpeg_data.slice(i);
-        moveon = jpeg_data.length - i;
+        segdata = jpeg_data.slice(index);
+        moveon = jpeg_data.length - index;
       }
     } else {
       // assume it's one that codes its length
       if (ma === COM) {
         descr = 'comment';
       } else if (ma >= APP0 && ma <= APP15) {
-        const nullIndex = jpeg_data.indexOf(0x00, i + 5);
-        descr = `APP${ma - 0xe0} ${jpeg_data.slice(i + 4, nullIndex).toString()}`;
+        const nullIndex = jpeg_data.indexOf(0x00, index + 5);
+        descr = `APP${ma - 0xE0} ${jpeg_data.slice(index + 4, nullIndex).toString()}`;
       } else if (ma === HQT) {
         descr = 'huffman tables';
       } else if (ma === DQT) {
@@ -199,31 +188,31 @@ function* read_structure(jpeg_data, debug = false) {
         descr = 'start of frame, extended sequential, huffman';
       } else if (ma === SOF9) {
         descr = 'start of frame, extended sequential, arithmetic';
-      } else if (ma === 0xc3) {
+      } else if (ma === 0xC3) {
         descr = '(start of frame? -) lossless';
-      } else if (ma === 0xc5) {
+      } else if (ma === 0xC5) {
         descr = '(start of frame? -) differential sequential DCI';
-      } else if (ma === 0xc6) {
+      } else if (ma === 0xC6) {
         descr = '(start of frame? -) differential progressive DCI';
-      } else if (ma === 0xc7) {
+      } else if (ma === 0xC7) {
         descr = '(start of frame? -) differential lossless';
-      } else if (ma === 0xc8) {
+      } else if (ma === 0xC8) {
         descr = 'JPEG extensions';
-      } else if (ma === 0xca) {
+      } else if (ma === 0xCA) {
         descr = '(start of frame? -) extended progressive DCT';
-      } else if (ma === 0xcb) {
+      } else if (ma === 0xCB) {
         descr = '(start of frame? -) extended lossless';
-      } else if (ma === 0xcc) {
+      } else if (ma === 0xCC) {
         descr = 'arithmetic conditioning table';
-      } else if (ma >= 0xf0 && ma <= 0xf6) {
+      } else if (ma >= 0xF0 && ma <= 0xF6) {
         descr = 'JPEG extensions, ITU T.84/IEC 10918-3';
-      } else if (ma === 0xf7) {
+      } else if (ma === 0xF7) {
         descr = 'JPEG LS - SOF48';
-      } else if (ma === 0xf8) {
+      } else if (ma === 0xF8) {
         descr = 'JPEG LS - LSE';
-      } else if (ma >= 0xf9 && ma <= 0xffd) {
+      } else if (ma >= 0xF9 && ma <= 0xF_FD) {
         descr = 'JPEG extensions, ITU T.84/IEC 10918-3';
-      } else if (ma >= 0x4f && ma <= 0x6f) {
+      } else if (ma >= 0x4F && ma <= 0x6F) {
         descr = 'JPEG extensions, JPEG2000?';
       } else if (ma >= 0x90 && ma <= 0x93) {
         descr = 'JPEG extensions, JPEG2000?';
@@ -233,13 +222,13 @@ function* read_structure(jpeg_data, debug = false) {
         descr = 'JPEG extensions, JPEG2000?, coding style default';
       } else if (ma === 0x53) {
         descr = 'JPEG extensions, JPEG2000?, coding style component';
-      } else if (ma === 0x5e) {
+      } else if (ma === 0x5E) {
         descr = 'JPEG extensions, JPEG2000?, region of interest';
-      } else if (ma === 0x5c) {
+      } else if (ma === 0x5C) {
         descr = 'JPEG extensions, JPEG2000?, quantization default';
-      } else if (ma === 0x5d) {
+      } else if (ma === 0x5D) {
         descr = 'JPEG extensions, JPEG2000?, quantization component';
-      } else if (ma === 0x5f) {
+      } else if (ma === 0x5F) {
         descr = 'JPEG extensions, JPEG2000?, progression order change';
       } else if (ma === 0x55) {
         descr = 'JPEG extensions, JPEG2000?, tile-part lengths';
@@ -259,7 +248,7 @@ function* read_structure(jpeg_data, debug = false) {
         descr = 'JPEG extensions, JPEG2000?, component reg';
       } else if (ma === 0x64) {
         descr = 'JPEG extensions, JPEG2000?, comment';
-      } else if (ma === 0xfd) {
+      } else if (ma === 0xFD) {
         descr = 'reserved for JPEG extensions';
       } else if (ma === SOS) {
         descr = 'SOS Start Of Scan';
@@ -267,8 +256,8 @@ function* read_structure(jpeg_data, debug = false) {
         descr = 'unknown marker';
       }
 
-      const datasize = (jpeg_data[i + 2] << 8) + jpeg_data[i + 3];
-      segdata = jpeg_data.slice(i + 4, i + 2 + datasize);
+      const datasize = (jpeg_data[index + 2] << 8) + jpeg_data[index + 3];
+      segdata = jpeg_data.slice(index + 4, index + 2 + datasize);
       moveon = datasize + 2;
     }
 
@@ -278,8 +267,8 @@ function* read_structure(jpeg_data, debug = false) {
 
     // Selective parsing of contents
     if (debug) {
-      if (ma === 0xe0) {
-        if (segdata.slice(0, 5).equals(Buffer.from('JFIF\x00'))) {
+      if (ma === 0xE0) {
+        if (segdata.slice(0, 5).equals(Buffer.from('JFIF\u0000'))) {
           const units = segdata[7];
           let unitsDesc;
           if (units === 0) {
@@ -325,17 +314,17 @@ function* read_structure(jpeg_data, debug = false) {
           } else if (cid === 5) {
             process.stdout.write('Q ');
           }
-          console.log(`hsfac:${(sampfac & 0xf0) >> 4} vsfac:${sampfac & 0x0f}  qtnum:${qtnum}`);
+          console.log(`hsfac:${(sampfac & 0xF0) >> 4} vsfac:${sampfac & 0x0F}  qtnum:${qtnum}`);
         }
       }
 
-      if (ma === 0xfe) {
+      if (ma === 0xFE) {
         console.log(`${segdata.toString()}`);
       }
     }
 
-    segdata = jpeg_data.slice(i, i + moveon);
-    i += moveon;
+    segdata = jpeg_data.slice(index, index + moveon);
+    index += moveon;
     yield [ma, descr, moveon, segdata];
   }
 }
@@ -402,55 +391,55 @@ async function moshJpegData(jpegdata, typ = 3, qt = [2, 1], im = [15, 1], valida
   let tries = validate_maxtries;
   while (tries > 0) {
     tries--;
-    const ret = [];
+    const returnValue = [];
 
-    for (const [marker, _descr, _moveon, segdata] of read_structure(jpegdata)) {
+    for (const [marker, segdata] of read_structure(jpegdata)) {
       if (marker === DQT) {
         // quant tables
         const mask = [];
-        let i = 4; // skip past ff, marker, and length
+        let index = 4; // skip past ff, marker, and length
         for (let _ = 0; _ < 4; _++) {
-          i++;
-          mask.push(...Array.from({length: 64}, (_, j) => i + j)); // current assumes 8-bit quant tables; TODO: fix
+          index++;
+          mask.push(...Array.from({length: 64}, (_, index_) => index + index_)); // current assumes 8-bit quant tables; TODO: fix
         }
         if (typ & 0x01) {
           const corrupted_segdata = flipbits(segdata, qt[0], qt[1], 4);
-          ret.push(corrupted_segdata);
+          returnValue.push(corrupted_segdata);
         } else {
-          ret.push(segdata);
+          returnValue.push(segdata);
         }
       } else if (marker === SOS) {
         // SOS and image data
         if (typ & 0x02) {
           const corrupted_segdata = flipbits(segdata, im[0], im[1], 20);
-          ret.push(corrupted_segdata);
+          returnValue.push(corrupted_segdata);
         } else {
-          ret.push(segdata);
+          returnValue.push(segdata);
         }
-      } else if (marker >= 0xe1 && marker <= 0xef) {
+      } else if (marker >= 0xE1 && marker <= 0xEF) {
         // strip APP1..15
         // Do nothing, skip these segments
       } else {
         // other chunk, pass through
-        ret.push(segdata);
+        returnValue.push(segdata);
       }
     }
 
-    const retdata = Buffer.concat(ret);
+    const retdata = Buffer.concat(returnValue);
 
-    if (!validate) {
-      return retdata;
-    } else {
+    if (validate) {
       try {
         // Use Jimp to validate if the image can still be opened
         await Jimp.read(retdata);
         return retdata;
-      } catch (error) {
+      } catch {
         continue; // Try again if validation fails
       }
+    } else {
+      return retdata;
     }
   }
 
   throw new Error(`Didn't get valid data after ${validate_maxtries} tries, you're probably asking for too much corruption.`);
 }
-export {read_structure, moshJpegData};
+export {moshJpegData,read_structure};

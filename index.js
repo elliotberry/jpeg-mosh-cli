@@ -1,29 +1,30 @@
 import fs from 'node:fs/promises';
-import {read_structure, moshJpegData} from './helpers.js';
 import yargs from 'yargs';
 import {hideBin} from 'yargs/helpers';
+
+import {moshJpegData,read_structure} from './helpers.js';
 
 const main = async () => {
   const argv = yargs(hideBin(process.argv))
     .usage('Usage: $0 <input> [options]')
     .command('$0 <input>', 'Moshes a JPEG file', yargs => {
       yargs.positional('input', {
+        demandOption: true,
         describe: 'Path to the input JPEG file',
         type: 'string',
-        demandOption: true,
       });
     })
     .option('output', {
       alias: 'o',
-      type: 'string',
-      description: 'Path to save the moshed JPEG file',
       default: 'moshed_image.jpg',
+      description: 'Path to save the moshed JPEG file',
+      type: 'string',
     })
     .option('iterations', {
       alias: 'n',
-      type: 'number',
-      description: 'Number of iterations for the moshing process',
       default: 3,
+      description: 'Number of iterations for the moshing process',
+      type: 'number',
     })
     .help().argv;
 
