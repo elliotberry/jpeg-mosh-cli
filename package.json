@@ -7,6 +7,7 @@
   "license": "The Unlicense",
   "description": "",
   "dependencies": {
+    "elliotisms": "^0.0.44",
     "jimp": "^1.6.0",
     "yargs": "^17.7.2"
   },
