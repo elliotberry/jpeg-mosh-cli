@@ -340,7 +340,7 @@ function* read_structure(jpeg_data, debug = false) {
   }
 }
 
-async function mosh_jpeg_data(jpegdata, typ = 3, qt = [2, 1], im = [15, 1], validate = false, validate_maxtries = 10) {
+async function moshJpegData(jpegdata, typ = 3, qt = [2, 1], im = [15, 1], validate = false, validate_maxtries = 10) {
   /* Takes a JPEG file's byte data, returns a corrupted JPEG file byte data that hopefully still displays
                             
                                 @param typ: what part(s) to corrupt;
@@ -453,4 +453,4 @@ async function mosh_jpeg_data(jpegdata, typ = 3, qt = [2, 1], im = [15, 1], vali
 
   throw new Error(`Didn't get valid data after ${validate_maxtries} tries, you're probably asking for too much corruption.`);
 }
-export {read_structure, mosh_jpeg_data};
+export {read_structure, moshJpegData};
