@@ -23,7 +23,7 @@
 
 // Import necessary modules
 import fs from 'node:fs'; // For file system operations
-
+import {Buffer} from 'node:buffer'; // For working with binary data
 import {Jimp} from 'jimp'; // Image processing library for checking if the corrupted image can still be opened
 
 // Define JPEG marker constants
@@ -69,7 +69,7 @@ const byteToHex = byte => byte.toString(16).padStart(2, '0');
       - segment size
       - segment data
 */
-function* read_structure(jpeg_data, debug = false) {
+function* readStructure(jpeg_data, debug = false) {
   let index = 0;
   const dsize = jpeg_data.length;
 
@@ -169,7 +169,7 @@ function* read_structure(jpeg_data, debug = false) {
         const htab_ac = (htab & 0xf0) >> 4;
         const htab_dc = htab & 0x0f;
         if (debug) {
-          console.log(`Huffman table  AC:<span class="math-inline">\{htab\_ac\.toString\(16\)\}  DC\:</span>{htab_dc.toString(16)}`);
+          console.log(`Huffman table  AC:${htab_ac.toString(16)}  DC:${htab_dc.toString(16)}`);
         }
       }
 
@@ -385,31 +385,29 @@ async function moshJpegData(jpegdata, typ = 3, qt = [2, 1], im = [15, 1], valida
       
   @return: a Buffer object of the same length, and _mostly_ with the same data, y'know.
 */
-  function flipbits(data, howmanytimes = 10, howmanybits = 2, skipfirstbytes = 0, mask = null) {
-    const retdata = Buffer.from(data); // Create a copy of the data
-
-    if (mask) {
+function flipbits(data, howmanytimes = 10, howmanybits = 2, skipfirstbytes = 0, mask = null) {
+  if (mask) {
       mask = mask.filter(index => index > skipfirstbytes && index < data.length);
-    }
+  }
 
-    while (howmanytimes > 0) {
+  while (howmanytimes > 0) {
       const targetbyte = mask ? mask[Math.floor(Math.random() * mask.length)] : Math.floor(Math.random() * (data.length - skipfirstbytes)) + skipfirstbytes;
 
       for (let _ = 0; _ < howmanybits; _++) {
-        const bitnum = Math.floor(Math.random() * 8);
-        retdata[targetbyte] ^= 2 ** bitnum;
+          const bitnum = Math.floor(Math.random() * 8);
+          data[targetbyte] ^= 2 ** bitnum;  // Modify the original data in-place
       }
       howmanytimes--;
-    }
-    return retdata;
   }
+  return data;  // Return the modified data
+}
 
   let tries = validate_maxtries;
   while (tries > 0) {
     tries--;
     const returnValue = [];
 
-    for (const [marker, _descr, _moveon, segdata] of read_structure(jpegdata)) {
+    for (const [marker, _descr, _moveon, segdata] of readStructure(jpegdata)) {
       if (marker === DQT) {
         // quant tables
         const mask = [];
@@ -449,7 +447,7 @@ async function moshJpegData(jpegdata, typ = 3, qt = [2, 1], im = [15, 1], valida
         await Jimp.read(retdata);
         return retdata;
       } catch {
-        debug && console.log('Validation failed, trying again');
+        console.log('Validation failed, trying again');
         continue; // Try again if validation fails
       }
     } else {
@@ -459,4 +457,4 @@ async function moshJpegData(jpegdata, typ = 3, qt = [2, 1], im = [15, 1], valida
 
   throw new Error(`Didn't get valid data after ${validate_maxtries} tries, you're probably asking for too much corruption.`);
 }
-export {moshJpegData, read_structure};
+export {moshJpegData, readStructure as read_structure};
