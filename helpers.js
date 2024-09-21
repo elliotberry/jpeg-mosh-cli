@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-
 /*
     read_structure() parses a relatively simple JPEG file into its constituent segments.
     - ...which is less than you were probably looking for.
@@ -8,7 +7,7 @@
     mosh_jpeg_data() takes the segments from read_structure() and corrupts a few of them
 
 
-    Pure-python, meaning it won't be the fastest out there.
+    Pure Node, meaning it won't be the fastest out there.
 
     Some interesting reading:
     - https://helpful.knobs-dials.com/index.php/Image_file_format_notes#Notes_on_JPEG_file_structure
@@ -25,18 +24,18 @@
 // Import necessary modules
 import fs from 'node:fs'; // For file system operations
 
-import {Jimp} from 'jimp'; // Image processing library (replacement for PIL)
+import {Jimp} from 'jimp'; // Image processing library for checking if the corrupted image can still be opened
 
-// Define JPEG markers
-const SOI = 0xd8;
-const APP0 = 0xe0;
-const APP1 = 0xe1;
-const APP2 = 0xe2;
-const APP3 = 0xe3;
-const APP4 = 0xe4;
-const APP5 = 0xe5;
-const APP6 = 0xe6;
-const APP7 = 0xe7;
+// Define JPEG marker constants
+const SOI = 0xd8; // Start of Image
+const APP0 = 0xe0; // Application-specific
+const APP1 = 0xe1; // Application-specific
+const APP2 = 0xe2; // Application-specific
+const APP3 = 0xe3; // Application-specific
+const APP4 = 0xe4; // Application-specific
+const APP5 = 0xe5; // Application-specific
+const APP6 = 0xe6; // Application-specific
+const APP7 = 0xe7; // Application-specific
 const APP8 = 0xe8;
 const APP9 = 0xe9;
 const APP10 = 0xea;
@@ -45,15 +44,18 @@ const APP12 = 0xec;
 const APP13 = 0xed;
 const APP14 = 0xee;
 const APP15 = 0xef;
-const SOF0 = 0xc0;
-const SOF2 = 0xc2;
-const SOF1 = 0xc1;
-const SOF9 = 0xc9;
-const HQT = 0xc4;
-const DQT = 0xdb;
-const SOS = 0xda;
-const EOI = 0xd9;
-const COM = 0xfe;
+const SOF0 = 0xc0; // Start of Frame (baseline DCT)
+const SOF2 = 0xc2; // Start of Frame (progressive DCT)
+const SOF1 = 0xc1; // Start of Frame (extended sequential DCT)
+const SOF9 = 0xc9; // Start of Frame (extended sequential DCT)
+const HQT = 0xc4; // Huffman table
+const DQT = 0xdb; // Quantization table
+const SOS = 0xda; // Start of Scan
+const EOI = 0xd9; // End of Image
+const COM = 0xfe; // Comment
+
+// Helper function to convert a byte to a hexadecimal string in the format '0x00'
+const byteToHex = byte => byte.toString(16).padStart(2, '0');
 
 /*
     Given a jpeg file contents as a bytes object, splits it into its constituent segments.
@@ -62,11 +64,11 @@ const COM = 0xfe;
     @param jpeg_data: the file as a Buffer object
     @param debug: whether to spit out debug stuff on stdout
     @return: a generator that yields 4-tuples:
-- the segment's marker byte (~= its type)
-- a readable description
-- segment size
-- segment data
-    */
+      - the segment's marker byte (~= its 'type')
+      - a readable description
+      - segment size
+      - segment data
+*/
 function* read_structure(jpeg_data, debug = false) {
   let index = 0;
   const dsize = jpeg_data.length;
@@ -78,19 +80,19 @@ function* read_structure(jpeg_data, debug = false) {
 
     if (jpeg_data[index] !== 0xff) {
       if (debug) {
-        console.log(`    segment didn't start with 0xff, we probably mis-parsed (next bytes are ${jpeg_data.slice(index, index + 8)})`);
+        console.log(`segment didn't start with 0xff, we probably mis-parsed (next bytes are ${jpeg_data.slice(index, index + 8)})`);
         console.log('');
       }
       break;
     }
 
-    const ma = jpeg_data[index + 1]; // marker
+    const ma = jpeg_data[index + 1]; // marker byte for segment
     let descr;
     let moveon;
     let segdata;
 
     if (debug) {
-      console.log(`    marker byte  [${ma.toString(16).padStart(2, '0')}]`);
+      console.log(`marker byte  [${byteToHex(ma)}]`);
     }
 
     if (ma === SOI) {
@@ -135,20 +137,20 @@ function* read_structure(jpeg_data, debug = false) {
 
       const datasize = (jpeg_data[index + 2] << 8) + jpeg_data[index + 3];
       if (debug) {
-        console.log(`  SOS header size: ${datasize}`);
+        console.log(`SOS header size: ${datasize}`);
       }
       const number_components = jpeg_data[index + 4];
 
       if (debug) {
-        console.log(`  Components in scan: ${number_components}`);
+        console.log(`Components in scan: ${number_components}`);
       }
       for (let ci = 0; ci < number_components; ci++) {
         if (debug) {
-          console.log(`  Component ${ci + 1} of ${number_components}`);
+          console.log(`Component ${ci + 1} of ${number_components}`);
         }
         const cid = jpeg_data[index + 4 + 2 * ci];
         if (debug) {
-          process.stdout.write('   Channel');
+          process.stdout.write('Channel');
           if (cid === 1) {
             console.log('Y ');
           } else if (cid === 2) {
@@ -167,7 +169,7 @@ function* read_structure(jpeg_data, debug = false) {
         const htab_ac = (htab & 0xf0) >> 4;
         const htab_dc = htab & 0x0f;
         if (debug) {
-          console.log(`  Huffman table  AC:<span class="math-inline">\{htab\_ac\.toString\(16\)\}  DC\:</span>{htab_dc.toString(16)}`);
+          console.log(`Huffman table  AC:<span class="math-inline">\{htab\_ac\.toString\(16\)\}  DC\:</span>{htab_dc.toString(16)}`);
         }
       }
 
@@ -339,13 +341,16 @@ function* read_structure(jpeg_data, debug = false) {
     yield [ma, descr, moveon, segdata];
   }
 }
-  /* Takes a JPEG file's byte data, returns a corrupted JPEG file byte data that hopefully still displays
+
+/* 
+  
+  Takes a JPEG file's byte data, returns a corrupted JPEG file byte data that hopefully still displays
     
   @param typ: what part(s) to corrupt;
     - if typ&1, we corrupt quantization tables according to qt
     - if typ&2, we corrupt image data according to im
     
-  @param qt: should be a (howmanytimes,howmanybits) tuple, how much to corrupt the quantization tables
+  @param qt: should be a (howmanytimes, howmanybits) tuple, how much to corrupt the quantization tables
   Note that small changes have a lot of effect if early in the table
   (though we don't currently control where -- that might be interesting to do).
     
@@ -359,28 +364,28 @@ function* read_structure(jpeg_data, debug = false) {
     
   @param validate_maxtries: if validating, how fast to give up
   (mostly to avoid indinite loop caused by corrupting too much)
-    */
-async function moshJpegData(jpegdata, typ = 3, qt = [2, 1], im = [15, 1], validate = false, validate_maxtries = 10) {
+*/
 
-  /* Takes bytes, and some parameters on how to corrupt those bytes.
+async function moshJpegData(jpegdata, typ = 3, qt = [2, 1], im = [15, 1], validate = false, validate_maxtries = 10) {
+/* 
+  Takes bytes, and some parameters on how to corrupt those bytes.
     
-The corruption is based on
-  - picking a byte position (random with some control),
-  - flipping a random bit in that byte _howmanybits_ times.
-  - and repeating that _howmanytimes_ times
-    
-Yes, both can pick the same positions and end up not changing the data at all.
-No, this is not the most efficient way to do this. For my purposes, I don't care yet.
-    
-@param skipfirst: basic construction to not touch the first bytes, to avoid headers at the start
-    
-@param mask: if not null, should be a list of indices - we will work _only_ on those indices
-Note that if mask is set, it overrules skipfirstbytes.
-    
-@return: a Buffer object of the same length, and _mostly_ with the same data, y'know.
-  */
+  The corruption is based on
+    - picking a byte position (random with some control),
+    - flipping a random bit in that byte _howmanybits_ times.
+    - and repeating that _howmanytimes_ times
+      
+  Yes, both can pick the same positions and end up not changing the data at all.
+  No, this is not the most efficient way to do this. For my purposes, I don't care yet.
+      
+  @param skipfirst: basic construction to not touch the first bytes, to avoid headers at the start
+      
+  @param mask: if not null, should be a list of indices - we will work _only_ on those indices
+  Note that if mask is set, it overrules skipfirstbytes.
+      
+  @return: a Buffer object of the same length, and _mostly_ with the same data, y'know.
+*/
   function flipbits(data, howmanytimes = 10, howmanybits = 2, skipfirstbytes = 0, mask = null) {
-  
     const retdata = Buffer.from(data); // Create a copy of the data
 
     if (mask) {
@@ -444,6 +449,7 @@ Note that if mask is set, it overrules skipfirstbytes.
         await Jimp.read(retdata);
         return retdata;
       } catch {
+        debug && console.log('Validation failed, trying again');
         continue; // Try again if validation fails
       }
     } else {
