@@ -2,7 +2,7 @@
 ![](./art.jpeg)
 Pure JS CLI that mildly corrupts JPEGs for a moshing-like effect; e.g. introduces creative distortions into the image data.
 
-All Credit goes to [knobs-dials](https://github.com/knobs-dials), who wrote the original in python ([https://github.com/knobs-dials/jpeg-mosh/](https://github.com/knobs-dials/jpeg-mosh/)), and did a lot of interestinmg research. It's available live at [https://mosh.scarfboy.com/](https://github.com/knobs-dials/jpeg-mosh/).
+All Credit goes to [knobs-dials](https://github.com/knobs-dials), who wrote the original in python ([https://github.com/knobs-dials/jpeg-mosh/](https://github.com/knobs-dials/jpeg-mosh/)), and did a lot of interesting research. It's available live at [https://mosh.scarfboy.com/](https://github.com/knobs-dials/jpeg-mosh/).
 
 The test.jpg is from https://commons.wikimedia.org/wiki/File:Jpeg_thumb_artifacts_test.jpg
 
