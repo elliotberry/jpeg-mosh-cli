@@ -4,7 +4,7 @@
     - ...which is less than you were probably looking for.
     - (it originated in somthing even simpler, verying that the mars rover images were indeed an unusual JPEG flavour)
 
-    mosh_jpeg_data() takes the segments from read_structure() and corrupts a few of them
+    mosh_jpegData() takes the segments from read_structure() and corrupts a few of them
 
 
     Pure Node, meaning it won't be the fastest out there.
@@ -22,37 +22,10 @@
 */
 
 // Import necessary modules
-import fs from 'node:fs'; // For file system operations
+
 import {Buffer} from 'node:buffer'; // For working with binary data
 import {Jimp} from 'jimp'; // Image processing library for checking if the corrupted image can still be opened
-
-// Define JPEG marker constants
-const SOI = 0xd8; // Start of Image
-const APP0 = 0xe0; // Application-specific
-const APP1 = 0xe1; // Application-specific
-const APP2 = 0xe2; // Application-specific
-const APP3 = 0xe3; // Application-specific
-const APP4 = 0xe4; // Application-specific
-const APP5 = 0xe5; // Application-specific
-const APP6 = 0xe6; // Application-specific
-const APP7 = 0xe7; // Application-specific
-const APP8 = 0xe8;
-const APP9 = 0xe9;
-const APP10 = 0xea;
-const APP11 = 0xeb;
-const APP12 = 0xec;
-const APP13 = 0xed;
-const APP14 = 0xee;
-const APP15 = 0xef;
-const SOF0 = 0xc0; // Start of Frame (baseline DCT)
-const SOF2 = 0xc2; // Start of Frame (progressive DCT)
-const SOF1 = 0xc1; // Start of Frame (extended sequential DCT)
-const SOF9 = 0xc9; // Start of Frame (extended sequential DCT)
-const HQT = 0xc4; // Huffman table
-const DQT = 0xdb; // Quantization table
-const SOS = 0xda; // Start of Scan
-const EOI = 0xd9; // End of Image
-const COM = 0xfe; // Comment
+import {SOI, EOI, COM, SOS, APP0, APP15, SOF0, SOF2, SOF1, SOF9, HQT, DQT} from './constants.js'; // JPEG marker constants
 
 // Helper function to convert a byte to a hexadecimal string in the format '0x00'
 const byteToHex = byte => byte.toString(16).padStart(2, '0');
@@ -61,7 +34,7 @@ const byteToHex = byte => byte.toString(16).padStart(2, '0');
     Given a jpeg file contents as a bytes object, splits it into its constituent segments.
     You wouldn't call this a parser - it does little to no interpretation of what those segments mean.
 
-    @param jpeg_data: the file as a Buffer object
+    @param jpegData: the file as a Buffer object
     @param debug: whether to spit out debug stuff on stdout
     @return: a generator that yields 4-tuples:
       - the segment's marker byte (~= its 'type')
@@ -69,24 +42,24 @@ const byteToHex = byte => byte.toString(16).padStart(2, '0');
       - segment size
       - segment data
 */
-function* readStructure(jpeg_data, debug = false) {
+function* readStructure(jpegData, debug = false) {
   let index = 0;
-  const dsize = jpeg_data.length;
+  const dsize = jpegData.length;
 
-  while (index < jpeg_data.length) {
+  while (index < jpegData.length) {
     if (debug) {
       console.log(`now at bytepos ${index} of ${dsize}`);
     }
 
-    if (jpeg_data[index] !== 0xff) {
+    if (jpegData[index] !== 0xff) {
       if (debug) {
-        console.log(`segment didn't start with 0xff, we probably mis-parsed (next bytes are ${jpeg_data.slice(index, index + 8)})`);
+        console.log(`segment didn't start with 0xff, we probably mis-parsed (next bytes are ${jpegData.slice(index, index + 8)})`);
         console.log('');
       }
       break;
     }
 
-    const ma = jpeg_data[index + 1]; // marker byte for segment
+    const ma = jpegData[index + 1]; // marker byte for segment
     let descr;
     let moveon;
     let segdata;
@@ -135,11 +108,11 @@ function* readStructure(jpeg_data, debug = false) {
       // Start of Scan
       descr = 'start of scan';
 
-      const datasize = (jpeg_data[index + 2] << 8) + jpeg_data[index + 3];
+      const datasize = (jpegData[index + 2] << 8) + jpegData[index + 3];
       if (debug) {
         console.log(`SOS header size: ${datasize}`);
       }
-      const number_components = jpeg_data[index + 4];
+      const number_components = jpegData[index + 4];
 
       if (debug) {
         console.log(`Components in scan: ${number_components}`);
@@ -148,47 +121,47 @@ function* readStructure(jpeg_data, debug = false) {
         if (debug) {
           console.log(`Component ${ci + 1} of ${number_components}`);
         }
-        const cid = jpeg_data[index + 4 + 2 * ci];
+        const cid = jpegData[index + 4 + 2 * ci];
         if (debug) {
-          process.stdout.write('Channel');
+       
           if (cid === 1) {
-            console.log('Y ');
+            console.log('Channel Y ');
           } else if (cid === 2) {
-            console.log('Cb');
+            console.log('Channel Cb');
           } else if (cid === 3) {
-            console.log('Cr');
+            console.log('Channel Cr');
           } else if (cid === 4) {
-            console.log('I ');
+            console.log('Channel I ');
           } else if (cid === 5) {
-            console.log('Q ');
+            console.log('Channel Q ');
           } else {
-            console.log(cid);
+            console.log(`cid: ${cid}`);
           }
         }
-        const htab = jpeg_data[index + 4 + 2 * ci + 1];
+        const htab = jpegData[index + 4 + 2 * ci + 1];
         const htab_ac = (htab & 0xf0) >> 4;
         const htab_dc = htab & 0x0f;
         if (debug) {
-          console.log(`Huffman table  AC:${htab_ac.toString(16)}  DC:${htab_dc.toString(16)}`);
+          console.log(`Huffman table AC:${byteToHex(htab_ac)}  DC:${byteToHex(htab_dc)}`);
         }
       }
 
       // HACK: just look assume this section ends with an EOI
-      if (jpeg_data.slice(-2).equals(Buffer.from([0xff, 0xd9]))) {
-        segdata = jpeg_data.slice(index, -2);
-        moveon = jpeg_data.length - index - 2;
+      if (jpegData.slice(-2).equals(Buffer.from([0xff, 0xd9]))) {
+        segdata = jpegData.slice(index, -2);
+        moveon = jpegData.length - index - 2;
       } else {
         // or sometimes no EOI. Joy.
-        segdata = jpeg_data.slice(index);
-        moveon = jpeg_data.length - index;
+        segdata = jpegData.slice(index);
+        moveon = jpegData.length - index;
       }
     } else {
       // assume it's one that codes its length
       if (ma === COM) {
         descr = 'comment';
       } else if (ma >= APP0 && ma <= APP15) {
-        const nullIndex = jpeg_data.indexOf(0x00, index + 5);
-        descr = `APP${ma - 0xe0} ${jpeg_data.slice(index + 4, nullIndex).toString()}`;
+        const nullIndex = jpegData.indexOf(0x00, index + 5);
+        descr = `APP${ma - 0xe0} ${jpegData.slice(index + 4, nullIndex).toString()}`;
       } else if (ma === HQT) {
         descr = 'huffman tables';
       } else if (ma === DQT) {
@@ -269,8 +242,8 @@ function* readStructure(jpeg_data, debug = false) {
         descr = 'unknown marker';
       }
 
-      const datasize = (jpeg_data[index + 2] << 8) + jpeg_data[index + 3];
-      segdata = jpeg_data.slice(index + 4, index + 2 + datasize);
+      const datasize = (jpegData[index + 2] << 8) + jpegData[index + 3];
+      segdata = jpegData.slice(index + 4, index + 2 + datasize);
       moveon = datasize + 2;
     }
 
@@ -336,10 +309,28 @@ function* readStructure(jpeg_data, debug = false) {
       }
     }
 
-    segdata = jpeg_data.slice(index, index + moveon);
+    segdata = jpegData.slice(index, index + moveon);
     index += moveon;
     yield [ma, descr, moveon, segdata];
   }
+}
+
+
+function flipbits(data, howmanytimes = 10, howmanybits = 2, skipfirstbytes = 0, mask = null) {
+  if (mask) {
+      mask = mask.filter(index => index > skipfirstbytes && index < data.length);
+  }
+
+  while (howmanytimes > 0) {
+      const targetbyte = mask ? mask[Math.floor(Math.random() * mask.length)] : Math.floor(Math.random() * (data.length - skipfirstbytes)) + skipfirstbytes;
+
+      for (let _ = 0; _ < howmanybits; _++) {
+          const bitnum = Math.floor(Math.random() * 8);
+          data[targetbyte] ^= 2 ** bitnum;  // Modify the original data in-place
+      }
+      howmanytimes--;
+  }
+  return data;  // Return the modified data
 }
 
 /* 
@@ -385,22 +376,7 @@ async function moshJpegData(jpegdata, typ = 3, qt = [2, 1], im = [15, 1], valida
       
   @return: a Buffer object of the same length, and _mostly_ with the same data, y'know.
 */
-function flipbits(data, howmanytimes = 10, howmanybits = 2, skipfirstbytes = 0, mask = null) {
-  if (mask) {
-      mask = mask.filter(index => index > skipfirstbytes && index < data.length);
-  }
 
-  while (howmanytimes > 0) {
-      const targetbyte = mask ? mask[Math.floor(Math.random() * mask.length)] : Math.floor(Math.random() * (data.length - skipfirstbytes)) + skipfirstbytes;
-
-      for (let _ = 0; _ < howmanybits; _++) {
-          const bitnum = Math.floor(Math.random() * 8);
-          data[targetbyte] ^= 2 ** bitnum;  // Modify the original data in-place
-      }
-      howmanytimes--;
-  }
-  return data;  // Return the modified data
-}
 
   let tries = validate_maxtries;
   while (tries > 0) {
