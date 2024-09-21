@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import yargs from 'yargs';
 import {hideBin} from 'yargs/helpers';
 import returnSafeFilepath from 'elliotisms/return-safe-filepath';
-import {moshJpegData, read_structure} from './helpers.js';
+import {moshJpegData} from './helpers.js';
 
 const main = async () => {
   const argv = yargs(hideBin(process.argv))
