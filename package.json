@@ -6,6 +6,9 @@
   "author": "",
   "license": "The Unlicense",
   "description": "",
+  "scripts": {
+    "test": "node index.js test.jpg"
+  },
   "dependencies": {
     "elliotisms": "^0.0.44",
     "jimp": "^1.6.0",
