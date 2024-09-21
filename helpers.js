@@ -317,21 +317,30 @@ function* readStructure(jpegData, debug = false) {
 
 
 function flipbits(data, howmanytimes = 10, howmanybits = 2, skipfirstbytes = 0, mask = null) {
-  if (mask) {
-      mask = mask.filter(index => index > skipfirstbytes && index < data.length);
-  }
+    if (mask) {
+        const filteredMask = [];
+        for (const element of mask) {
+            if (element > skipfirstbytes && element < data.length) {
+                filteredMask.push(element);
+            }
+        }
+        mask = filteredMask;
+    }
 
-  while (howmanytimes > 0) {
-      const targetbyte = mask ? mask[Math.floor(Math.random() * mask.length)] : Math.floor(Math.random() * (data.length - skipfirstbytes)) + skipfirstbytes;
+    const dataLength = data.length - skipfirstbytes;
 
-      for (let _ = 0; _ < howmanybits; _++) {
-          const bitnum = Math.floor(Math.random() * 8);
-          data[targetbyte] ^= 2 ** bitnum;  // Modify the original data in-place
-      }
-      howmanytimes--;
-  }
-  return data;  // Return the modified data
+    while (howmanytimes-- > 0) {
+        const targetbyte = mask ? mask[Math.floor(Math.random() * mask.length)] : Math.floor(Math.random() * dataLength) + skipfirstbytes;
+        
+        for (let _ = 0; _ < howmanybits; _++) {
+            const bitnum = Math.floor(Math.random() * 8);
+            data[targetbyte] ^= 1 << bitnum;  // Modify the original data in-place
+        }
+    }
+    
+    return data;  // Return the modified data
 }
+
 
 /* 
   
