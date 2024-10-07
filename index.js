@@ -1,7 +1,9 @@
+import chalk from 'chalk';
+import returnSafeFilepath from 'elliotisms/return-safe-filepath';
 import fs from 'node:fs/promises';
 import yargs from 'yargs';
 import {hideBin} from 'yargs/helpers';
-import returnSafeFilepath from 'elliotisms/return-safe-filepath';
+
 import {moshJpegData} from './helpers.js';
 
 const main = async () => {
@@ -32,19 +34,25 @@ const main = async () => {
       description: 'Number of iterations for the moshing process',
       type: 'number',
     })
+    .option("validate", {
+      alias: "v",
+      default: true,
+      description: "Validate the moshed JPEG file using the JIMP library",
+      type: "boolean",
+ })
     .help().argv;
 
   try {
     const jpegdata = await fs.readFile(argv.input);
 
     for await (const _ of Array.from({length: argv.number})) {
-      const moshedData = await moshJpegData(jpegdata, argv.iterations, [2, 1], [15, 1], true);
+      const moshedData = await moshJpegData(jpegdata, argv.iterations, [2, 1], [15, 1], argv.validate);
       let finalPath = await returnSafeFilepath(argv.output);
       await fs.writeFile(finalPath, moshedData);
-      console.log(`Moshed image saved to ${finalPath}`);
+      console.log(chalk.green(`Moshed image saved to ${finalPath}`));
     }
   } catch (error) {
-    console.error('Error moshing JPEG data:', error);
+    console.error(chalk.red('Error moshing JPEG data:', error));
   }
 };
 

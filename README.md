@@ -33,3 +33,17 @@ node index.js input.jpg -n 3 -o moshed_output.jpg
 ```
 
 This command applies the mosh effect to the `input.jpg` file, saves the output as `moshed_output.jpg`, and processes the image three times (`moshed_output-1.jpg, ...`). The original file is not modified.
+
+### Notes
+
+    Some interesting reading:
+    - https://helpful.knobs-dials.com/index.php/Image_file_format_notes#Notes_on_JPEG_file_structure
+    - http://www.opennet.ru/docs/formats/jpeg.txt
+    - http://www.tex.ac.uk/ctan/support/jpeg2ps/readjpeg.c
+    - https://svn.xiph.org/experimental/giles/jpegdump.c
+    - http://fotoforensics.com/tutorial-estq.php  'estimating quality based on quantization tables"
+    - http://en.wikibooks.org/wiki/JPEG_-_Idea_and_Practice/The_header_part
+    - http://www.digitalpreservation.gov/formats/fdd/fdd000017.shtml
+    - https://web.archive.org/web/20240406182506/https://koushtav.me/jpeg/tutorial/2017/11/25/lets-write-a-simple-jpeg-library-part-1/
+
+

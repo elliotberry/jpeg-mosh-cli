@@ -1,15 +1,14 @@
 import js from '@eslint/js'
 import packageJson from "eslint-plugin-package-json/configs/recommended";
-import perfectionistNatural from 'eslint-plugin-perfectionist/configs/recommended-natural'
+import perfectionist from 'eslint-plugin-perfectionist'
 import is from 'eslint-plugin-simple-import-sort'
-import sonarjs from "eslint-plugin-sonarjs";
 import eslintPluginUnicorn from 'eslint-plugin-unicorn'
 export default [
     eslintPluginUnicorn.configs['flat/recommended'],
-    perfectionistNatural,
+
     js.configs.recommended,
 
-    sonarjs.configs.recommended,
+ 
     packageJson,
     {
         files: ['**/*.js'],
@@ -26,7 +25,8 @@ export default [
             sourceType: 'module',
         },
         plugins: {
-            'simple-import-sort': is
+            perfectionist,
+            'simple-import-sort': is,
         },
 
         rules: {
@@ -52,10 +52,10 @@ export default [
             'unicorn/no-array-callback-reference': 'warn',
             'unicorn/no-null': 'warn',
             'unicorn/no-process-exit': 'off',
+            'unicorn/number-literal-case': 'off',
             'unicorn/prefer-switch': 'off',
             'unicorn/prefer-top-level-await': 'off',
-            'unicorn/prevent-abbreviations': 'warn',
-            'unicorn/number-literal-case': 'off'
+            'unicorn/prevent-abbreviations': 'warn'
         },
     },
 ]
