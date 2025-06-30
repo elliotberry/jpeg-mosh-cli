@@ -12,7 +12,7 @@ mosh*
 *.env
 # Logs and databases
 *.log
-
+*.jpg
 # OS generated files #
 .DS_Store
 *.DS_Store
